@@ -4,6 +4,8 @@ import com.aliyuncs.DefaultAcsClient;
 import com.aliyuncs.IAcsClient;
 import com.aliyuncs.dycdpapi.model.v20180610.CreateCdpOrderRequest;
 import com.aliyuncs.dycdpapi.model.v20180610.CreateCdpOrderResponse;
+import com.aliyuncs.dycdpapi.model.v20180610.QueryCdpOrderRequest;
+import com.aliyuncs.dycdpapi.model.v20180610.QueryCdpOrderResponse;
 import com.aliyuncs.exceptions.ClientException;
 import com.aliyuncs.profile.DefaultProfile;
 import com.aliyuncs.profile.IClientProfile;
@@ -19,7 +21,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
  * Created by billy on 2018/12/28.
  */
 @Controller
-@RequestMapping("flow2")
+@RequestMapping("flow")
 public class ChongLiuliang {
     /**
      * 发送流量
@@ -27,7 +29,7 @@ public class ChongLiuliang {
      * @param offerId 订单Id
      * @throws ClientException
      */
-    @RequestMapping(method = RequestMethod.GET)
+    @RequestMapping(value = "send", method = RequestMethod.GET)
     @ResponseBody
     private String sendFlow(String phone, Long offerId, String outOrderId, String aliKey, String aliSecret) throws ClientException {
         client = getClient(aliKey, aliSecret);
@@ -56,7 +58,40 @@ public class ChongLiuliang {
             //00000表示下单成功，之前超时的请求没有成功。
             return "false";
         }
+//        return "";
     }
+
+    /**
+     * 查询充值状态
+     * @param orderId 外部订单Id
+     * @throws ClientException
+     */
+    @RequestMapping(value = "result", method = RequestMethod.GET)
+    @ResponseBody
+    private String querySendResult(String orderId, String aliKey, String aliSecret) throws ClientException {
+        client = getClient(aliKey, aliSecret);
+        QueryCdpOrderRequest request = new QueryCdpOrderRequest();
+        request.setOutOrderId(orderId);
+        QueryCdpOrderResponse acsResponse = client.getAcsResponse(request);
+        System.out.println("orderId:" + orderId);
+        System.out.println("RequestId:" + acsResponse.getRequestId());
+        System.out.println("Code:" + acsResponse.getCode());
+        System.out.println("Message:" + acsResponse.getMessage());
+        if ("OK".equals(acsResponse.getCode())) {
+            //业务处理
+            QueryCdpOrderResponse.Data data = acsResponse.getData();
+            String code = data.getResultCode();
+            System.out.println("ResultMsg:" + data.getResultMsg());
+            System.out.println("ExtendParam:" + data.getExtendParam());
+            if (code.equals("00000")) {
+                return "true";
+            };
+            return "false";
+        } else {
+            // 说明请求超时，没有拿到结果
+            return "false";
+        }
+    };
 
     protected Logger logger = LoggerFactory.getLogger(this.getClass());
 
